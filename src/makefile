@@ -126,6 +126,7 @@ LIBNAME=$(PROG).so
 ifeq ($(CONFIG_WIN32),y)
 LDLIBS = -lm -lpthread -lwinmm -lws2_32
 LIBNAME=$(PROG).dll
+CTARGET += -DWIN32
 else
 LDLIBS  = -lm -lrt -lpthread
 endif
