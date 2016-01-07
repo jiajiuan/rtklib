@@ -1,4 +1,10 @@
+SHELL = /bin/sh
+include ../comps.conf
+
+
 PROG = librtk
+
+
 SOURCES = rtkcmn.c 			\
 		  rtksvr.c 			\
 		  rtkpos.c 			\
@@ -15,11 +21,8 @@ SOURCES = rtkcmn.c 			\
 		  preceph.c			\
 		  options.c			\
 		  pntpos.c			\
-		  ppp.c				\
-		  ppp_ar.c			\
 		  rcv/novatel.c		\
 		  rcv/ublox.c		\
-		  rcv/ss2.c			\
 		  rcv/crescent.c	\
 		  rcv/skytraq.c		\
 		  rcv/gw10.c		\
@@ -31,8 +34,8 @@ SOURCES = rtkcmn.c 			\
 		  rinex.c			\
 		  ionex.c			\
 		  qzslex.c			\
-		  
-		  
+
+
 OBJS = 	  rtkcmn.o 			\
 		  rtksvr.o 			\
 		  rtkpos.o 			\
@@ -49,11 +52,8 @@ OBJS = 	  rtkcmn.o 			\
 		  preceph.o			\
 		  options.o			\
 		  pntpos.o			\
-		  ppp.o				\
-		  ppp_ar.o			\
 		  novatel.o			\
 		  ublox.o			\
-		  ss2.o				\
 		  crescent.o		\
 		  skytraq.o			\
 		  gw10.o			\
@@ -66,17 +66,80 @@ OBJS = 	  rtkcmn.o 			\
 		  ionex.o			\
 		  qzslex.o			\
 
-CTARGET= -DENAGLO -DENAQZS -DENACMP -DNFREQ=3
 
-CFLAGS = -Wall -O3 -ansi -pedantic -Wno-unused-but-set-variable -I./ -DTRACE $(CTARGET) -g
+
+CTARGET= -DNFREQ=3
+
+ifeq ($(CONFIG_PPP),y)
+	SOURCES +=	ppp.c ppp_ar.c
+	OBJS 	+=	ppp.o ppp_ar.o
+endif
+
+
+ifeq ($(CONFIG_KML),y)
+	SOURCES +=	convkml.c
+	OBJS 	+=	convkml.o 
+endif
+
+
+ifeq ($(CONFIG_CONVRNX),y)
+	SOURCES +=	convrnx.c
+	OBJS 	+=	convrnx.o 
+endif
+
+
+ifeq ($(CONFIG_SS2),y)
+	SOURCES +=	rcv/ss2.c
+	OBJS 	+=	ss2.o 
+	CTARGET += DENASS2
+endif
+
+
+
+
+ifeq ($(CONFIG_GLONASS),y)
+	CTARGET += -DENAGLO
+endif
+
+ifeq ($(CONFIG_Galileo),y)
+	CTARGET += -DENAGAL
+endif
+
+ifeq ($(CONFIG_BeiDou),y)
+	CTARGET += -DENACMP
+endif
+
+ifeq ($(CONFIG_QZSS),y)
+	CTARGET += -DENAQZS
+endif
+
+ifeq ($(CONFIG_TRACE),y)
+	CTARGET += -DTRACE
+endif
+
+CC=gcc
+STRIP=strip
+
+CFLAGS = -Wall -O3 -ansi -pedantic -Wno-unused-but-set-variable -I./  $(CTARGET) -g
+LIBNAME=$(PROG).so
+
+ifeq ($(CONFIG_WIN32),y)
+LDLIBS = -lm -lpthread -lwinmm -lws2_32
+LIBNAME=$(PROG).dll
+else
 LDLIBS  = -lm -lrt -lpthread
+endif
+
 
 
 all: $(PROG)
 
-$(PROG): 
+$(PROG):
 	$(CC) -Wall $(CFLAGS) -fPIC -c $(SOURCES)
-	$(CC) -shared -fPIC -Wl,-soname,$(PROG).so -o $(PROG).so $(OBJS)
+	$(CC) -shared -fPIC -Wl,-soname,$(LIBNAME) -o $(LIBNAME) $(OBJS) $(LDLIBS)
+
+strip:
+	$(STRIP) $(PROG).so
 
 clean:
 	rm -rf  *.o $(PROG).so
